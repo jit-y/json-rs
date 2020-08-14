@@ -21,4 +21,8 @@ pub enum TokenType {
     RBrace,
     LBracket,
     RBracket,
+    Colon,
+
+    Plus,
+    Minus,
 }

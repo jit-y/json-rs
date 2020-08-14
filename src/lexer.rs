@@ -36,6 +36,9 @@ impl Lexer {
             ch @ '}' => self.build_token(TokenType::RBrace, ch.to_string()),
             ch @ '[' => self.build_token(TokenType::LBracket, ch.to_string()),
             ch @ ']' => self.build_token(TokenType::RBracket, ch.to_string()),
+            ch @ ':' => self.build_token(TokenType::Colon, ch.to_string()),
+            ch @ '+' => self.build_token(TokenType::Plus, ch.to_string()),
+            ch @ '-' => self.build_token(TokenType::Minus, ch.to_string()),
             _ => return None,
         };
 
@@ -81,23 +84,21 @@ mod tests {
 
     #[test]
     fn test_tokenize() {
-        check_lexer(
-            "{}".into(),
+        check_tokenize(
+            "{}[]:+-".into(),
             vec![
                 Token::new(TokenType::LBrace, "{".to_string()),
                 Token::new(TokenType::RBrace, "}".to_string()),
-            ],
-        );
-        check_lexer(
-            "[]".into(),
-            vec![
                 Token::new(TokenType::LBracket, "[".to_string()),
                 Token::new(TokenType::RBracket, "]".to_string()),
+                Token::new(TokenType::Colon, ":".to_string()),
+                Token::new(TokenType::Plus, "+".to_string()),
+                Token::new(TokenType::Minus, "-".to_string()),
             ],
         );
     }
 
-    fn check_lexer(input: String, expected: Vec<Token>) {
+    fn check_tokenize(input: String, expected: Vec<Token>) {
         let mut lex = Lexer::new(input);
 
         for e in expected {
