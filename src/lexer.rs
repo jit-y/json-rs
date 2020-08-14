@@ -100,9 +100,15 @@ mod tests {
 
     fn check_tokenize(input: String, expected: Vec<Token>) {
         let mut lex = Lexer::new(input);
+        let mut tokens = vec![];
+        while let Some(tok) = lex.next_token() {
+            tokens.push(tok);
+        }
 
-        for e in expected {
-            assert_eq!(lex.next_token(), Some(e));
+        assert_eq!(tokens.len(), expected.len());
+
+        for i in 0..expected.len() {
+            assert_eq!(tokens[i], expected[i]);
         }
     }
 }
