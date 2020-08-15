@@ -8,7 +8,7 @@ pub struct Lexer {
     input: Vec<char>,
     current_position: usize,
     next_position: usize,
-    ch: char,
+    current_char: char,
 }
 
 impl Lexer {
@@ -16,13 +16,13 @@ impl Lexer {
         let input = input.chars().collect();
         let current_position = 0;
         let next_position = 0;
-        let ch = '\u{0000}';
+        let current_char = '\u{0000}';
 
         let mut lex = Self {
             input,
             current_position,
             next_position,
-            ch,
+            current_char,
         };
 
         lex.read_char();
@@ -33,7 +33,7 @@ impl Lexer {
     pub fn next_token(&mut self) -> Result<Token> {
         self.skip_whitespace();
 
-        let token = match self.ch {
+        let token = match self.current_char {
             ch @ '{' => self.build_token(TokenType::LBrace, to_literal(ch)),
             ch @ '}' => self.build_token(TokenType::RBrace, to_literal(ch)),
             ch @ '[' => self.build_token(TokenType::LBracket, to_literal(ch)),
@@ -51,7 +51,7 @@ impl Lexer {
     }
 
     fn read_char(&mut self) {
-        self.ch = {
+        self.current_char = {
             if self.next_position >= self.input_len() {
                 '\u{0000}'
             } else {
@@ -73,7 +73,7 @@ impl Lexer {
 
     fn skip_whitespace(&mut self) {
         while !self.is_eof() {
-            match self.ch {
+            match self.current_char {
                 ' ' | '\r' | '\n' | '\t' => self.read_char(),
                 _ => break,
             }
@@ -81,7 +81,7 @@ impl Lexer {
     }
 
     fn is_eof(&self) -> bool {
-        self.ch == '\u{0000}'
+        self.current_char == '\u{0000}'
     }
 }
 
