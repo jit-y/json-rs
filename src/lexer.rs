@@ -1,4 +1,4 @@
-use crate::token::{Token, TokenType};
+use crate::token::{build_token, Token, TokenType};
 use std::fmt::Debug;
 
 use anyhow::{anyhow, Result};
@@ -34,14 +34,14 @@ impl Lexer {
         self.skip_whitespace();
 
         let token = match self.current_char {
-            ch @ '{' => self.build_token(TokenType::LBrace, to_literal(ch)),
-            ch @ '}' => self.build_token(TokenType::RBrace, to_literal(ch)),
-            ch @ '[' => self.build_token(TokenType::LBracket, to_literal(ch)),
-            ch @ ']' => self.build_token(TokenType::RBracket, to_literal(ch)),
-            ch @ ':' => self.build_token(TokenType::Colon, to_literal(ch)),
-            ch @ '+' => self.build_token(TokenType::Plus, to_literal(ch)),
-            ch @ '-' => self.build_token(TokenType::Minus, to_literal(ch)),
-            '\u{0000}' => self.build_token(TokenType::EOF, to_literal("")),
+            ch @ '{' => build_token(TokenType::LBrace, ch),
+            ch @ '}' => build_token(TokenType::RBrace, ch),
+            ch @ '[' => build_token(TokenType::LBracket, ch),
+            ch @ ']' => build_token(TokenType::RBracket, ch),
+            ch @ ':' => build_token(TokenType::Colon, ch),
+            ch @ '+' => build_token(TokenType::Plus, ch),
+            ch @ '-' => build_token(TokenType::Minus, ch),
+            '\u{0000}' => build_token(TokenType::EOF, ""),
             _ => return Err(anyhow!("error")),
         };
 
@@ -63,10 +63,6 @@ impl Lexer {
         self.next_position += 1;
     }
 
-    fn build_token(&self, token_type: TokenType, literal: String) -> Token {
-        Token::new(token_type, literal)
-    }
-
     fn input_len(&self) -> usize {
         self.input.len()
     }
@@ -83,13 +79,6 @@ impl Lexer {
     fn is_eof(&self) -> bool {
         self.current_char == '\u{0000}'
     }
-}
-
-fn to_literal<T>(s: T) -> String
-where
-    T: ToString,
-{
-    s.to_string()
 }
 
 #[cfg(test)]

@@ -28,3 +28,10 @@ pub enum TokenType {
 
     EOF,
 }
+
+pub fn build_token<T>(token_type: TokenType, literal: T) -> Token
+where
+    T: ToString,
+{
+    Token::new(token_type, literal.to_string())
+}
