@@ -1,12 +1,14 @@
 use crate::token::{Token, TokenType};
 use std::fmt::Debug;
 
+use anyhow::{anyhow, Result};
+
 #[derive(Debug, PartialEq)]
 pub struct Lexer {
     input: Vec<char>,
     current_position: usize,
     next_position: usize,
-    ch: Option<char>,
+    ch: char,
 }
 
 impl Lexer {
@@ -14,7 +16,7 @@ impl Lexer {
         let input = input.chars().collect();
         let current_position = 0;
         let next_position = 0;
-        let ch = None;
+        let ch = '\u{0000}';
 
         let mut lex = Self {
             input,
@@ -28,31 +30,32 @@ impl Lexer {
         lex
     }
 
-    pub fn next_token(&mut self) -> Option<Token> {
+    pub fn next_token(&mut self) -> Result<Token> {
         self.skip_whitespace();
 
-        let token = match self.ch? {
-            ch @ '{' => self.build_token(TokenType::LBrace, ch.to_string()),
-            ch @ '}' => self.build_token(TokenType::RBrace, ch.to_string()),
-            ch @ '[' => self.build_token(TokenType::LBracket, ch.to_string()),
-            ch @ ']' => self.build_token(TokenType::RBracket, ch.to_string()),
-            ch @ ':' => self.build_token(TokenType::Colon, ch.to_string()),
-            ch @ '+' => self.build_token(TokenType::Plus, ch.to_string()),
-            ch @ '-' => self.build_token(TokenType::Minus, ch.to_string()),
-            _ => return None,
+        let token = match self.ch {
+            ch @ '{' => self.build_token(TokenType::LBrace, to_literal(ch)),
+            ch @ '}' => self.build_token(TokenType::RBrace, to_literal(ch)),
+            ch @ '[' => self.build_token(TokenType::LBracket, to_literal(ch)),
+            ch @ ']' => self.build_token(TokenType::RBracket, to_literal(ch)),
+            ch @ ':' => self.build_token(TokenType::Colon, to_literal(ch)),
+            ch @ '+' => self.build_token(TokenType::Plus, to_literal(ch)),
+            ch @ '-' => self.build_token(TokenType::Minus, to_literal(ch)),
+            '\u{0000}' => self.build_token(TokenType::EOF, to_literal("")),
+            _ => return Err(anyhow!("error")),
         };
 
         self.read_char();
 
-        Some(token)
+        Ok(token)
     }
 
     fn read_char(&mut self) {
         self.ch = {
             if self.next_position >= self.input_len() {
-                None
+                '\u{0000}'
             } else {
-                Some(self.input[self.next_position])
+                self.input[self.next_position]
             }
         };
 
@@ -69,13 +72,24 @@ impl Lexer {
     }
 
     fn skip_whitespace(&mut self) {
-        while let Some(ch) = self.ch {
-            match ch {
+        while !self.is_eof() {
+            match self.ch {
                 ' ' | '\r' | '\n' | '\t' => self.read_char(),
                 _ => break,
             }
         }
     }
+
+    fn is_eof(&self) -> bool {
+        self.ch == '\u{0000}'
+    }
+}
+
+fn to_literal<T>(s: T) -> String
+where
+    T: ToString,
+{
+    s.to_string()
 }
 
 #[cfg(test)]
@@ -94,6 +108,7 @@ mod tests {
                 Token::new(TokenType::Colon, ":".to_string()),
                 Token::new(TokenType::Plus, "+".to_string()),
                 Token::new(TokenType::Minus, "-".to_string()),
+                Token::new(TokenType::EOF, "".to_string()),
             ],
         );
     }
@@ -101,9 +116,13 @@ mod tests {
     fn check_tokenize(input: String, expected: Vec<Token>) {
         let mut lex = Lexer::new(input);
         let mut tokens = vec![];
-        while let Some(tok) = lex.next_token() {
-            tokens.push(tok);
+        while !lex.is_eof() {
+            let tok = lex.next_token();
+            assert!(tok.is_ok());
+
+            tokens.push(tok.unwrap());
         }
+        tokens.push(lex.next_token().unwrap());
 
         assert_eq!(tokens.len(), expected.len());
 

@@ -25,4 +25,6 @@ pub enum TokenType {
 
     Plus,
     Minus,
+
+    EOF,
 }
