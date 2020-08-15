@@ -8,7 +8,7 @@ pub struct Lexer {
     input: Vec<char>,
     current_position: usize,
     next_position: usize,
-    current_char: char,
+    current_char: Option<char>,
 }
 
 impl Lexer {
@@ -16,7 +16,7 @@ impl Lexer {
         let input = input.chars().collect();
         let current_position = 0;
         let next_position = 0;
-        let current_char = '\u{0000}';
+        let current_char = None;
 
         let mut lex = Self {
             input,
@@ -33,15 +33,21 @@ impl Lexer {
     pub fn next_token(&mut self) -> Result<Token> {
         self.skip_whitespace();
 
-        let token = match self.current_char {
+        let ch = match self.current_char {
+            None => return Ok(build_token(TokenType::EOF, "")),
+            Some(c) => c,
+        };
+
+        let token = match ch {
             ch @ '{' => build_token(TokenType::LBrace, ch),
             ch @ '}' => build_token(TokenType::RBrace, ch),
             ch @ '[' => build_token(TokenType::LBracket, ch),
             ch @ ']' => build_token(TokenType::RBracket, ch),
             ch @ ':' => build_token(TokenType::Colon, ch),
+            ch @ ',' => build_token(TokenType::Comma, ch),
+            ch @ '.' => build_token(TokenType::Period, ch),
             ch @ '+' => build_token(TokenType::Plus, ch),
             ch @ '-' => build_token(TokenType::Minus, ch),
-            '\u{0000}' => build_token(TokenType::EOF, ""),
             _ => return Err(anyhow!("error")),
         };
 
@@ -53,9 +59,9 @@ impl Lexer {
     fn read_char(&mut self) {
         self.current_char = {
             if self.next_position >= self.input_len() {
-                '\u{0000}'
+                None
             } else {
-                self.input[self.next_position]
+                Some(self.input[self.next_position])
             }
         };
 
@@ -68,16 +74,12 @@ impl Lexer {
     }
 
     fn skip_whitespace(&mut self) {
-        while !self.is_eof() {
-            match self.current_char {
+        while let Some(ch) = self.current_char {
+            match ch {
                 ' ' | '\r' | '\n' | '\t' => self.read_char(),
                 _ => break,
             }
         }
-    }
-
-    fn is_eof(&self) -> bool {
-        self.current_char == '\u{0000}'
     }
 }
 
@@ -88,13 +90,15 @@ mod tests {
     #[test]
     fn test_tokenize() {
         check_tokenize(
-            "{}[]:+-".into(),
+            "{}[]:,.+-".into(),
             vec![
                 Token::new(TokenType::LBrace, "{".to_string()),
                 Token::new(TokenType::RBrace, "}".to_string()),
                 Token::new(TokenType::LBracket, "[".to_string()),
                 Token::new(TokenType::RBracket, "]".to_string()),
                 Token::new(TokenType::Colon, ":".to_string()),
+                Token::new(TokenType::Comma, ",".to_string()),
+                Token::new(TokenType::Period, ".".to_string()),
                 Token::new(TokenType::Plus, "+".to_string()),
                 Token::new(TokenType::Minus, "-".to_string()),
                 Token::new(TokenType::EOF, "".to_string()),
@@ -105,7 +109,7 @@ mod tests {
     fn check_tokenize(input: String, expected: Vec<Token>) {
         let mut lex = Lexer::new(input);
         let mut tokens = vec![];
-        while !lex.is_eof() {
+        while let Some(_) = lex.current_char {
             let tok = lex.next_token();
             assert!(tok.is_ok());
 
