@@ -28,6 +28,8 @@ pub enum TokenType {
     Plus,
     Minus,
 
+    Integer,
+
     EOF,
 }
 
