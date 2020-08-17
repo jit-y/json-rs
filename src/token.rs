@@ -29,6 +29,7 @@ pub enum TokenType {
     Minus,
 
     Integer,
+    String,
 
     EOF,
 }

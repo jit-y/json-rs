@@ -39,7 +39,7 @@ impl Lexer {
         };
 
         if is_digit(ch) {
-            let literal = self.take_integer_literal();
+            let literal = self.read_integer_literal();
 
             return Ok(build_token(TokenType::Integer, literal));
         }
@@ -54,7 +54,11 @@ impl Lexer {
             ch @ '.' => build_token(TokenType::Period, ch),
             ch @ '+' => build_token(TokenType::Plus, ch),
             ch @ '-' => build_token(TokenType::Minus, ch),
-            _ => return Err(anyhow!("error")),
+            '"' => {
+                let literal = self.take_string_literal()?;
+                build_token(TokenType::String, literal)
+            }
+            ch @ _ => return Err(anyhow!("error {}", ch)),
         };
 
         self.read_char();
@@ -75,7 +79,15 @@ impl Lexer {
         self.next_position += 1;
     }
 
-    fn take_integer_literal(&mut self) -> String {
+    fn peek_char(&self) -> Option<char> {
+        if self.next_position >= self.input_len() {
+            None
+        } else {
+            Some(self.input[self.next_position])
+        }
+    }
+
+    fn read_integer_literal(&mut self) -> String {
         let current = self.current_position;
 
         while let Some(ch) = self.current_char {
@@ -90,6 +102,31 @@ impl Lexer {
             .to_owned()
             .into_iter()
             .collect()
+    }
+
+    // TODO:escape
+    fn take_string_literal(&mut self) -> Result<String> {
+        let position = self.current_position + 1;
+
+        loop {
+            self.read_char();
+
+            match self.current_char {
+                Some(ch) => {
+                    if ch == '"' {
+                        break;
+                    }
+                }
+                // TODO:error
+                None => break,
+            }
+        }
+
+        let literal = (&self.input[position..self.current_position])
+            .into_iter()
+            .collect();
+
+        Ok(literal)
     }
 
     fn input_len(&self) -> usize {
@@ -113,24 +150,28 @@ fn is_digit(ch: char) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::token::build_token;
 
     #[test]
     fn test_tokenize() {
         check_tokenize(
-            "{}[12345, 67890]:.+-".into(),
+            "{\"abcde\": \"fghij\"}[12345, 67890]:.+-".into(),
             vec![
-                Token::new(TokenType::LBrace, "{".to_string()),
-                Token::new(TokenType::RBrace, "}".to_string()),
-                Token::new(TokenType::LBracket, "[".to_string()),
-                Token::new(TokenType::Integer, "12345".to_string()),
-                Token::new(TokenType::Comma, ",".to_string()),
-                Token::new(TokenType::Integer, "67890".to_string()),
-                Token::new(TokenType::RBracket, "]".to_string()),
-                Token::new(TokenType::Colon, ":".to_string()),
-                Token::new(TokenType::Period, ".".to_string()),
-                Token::new(TokenType::Plus, "+".to_string()),
-                Token::new(TokenType::Minus, "-".to_string()),
-                Token::new(TokenType::EOF, "".to_string()),
+                build_token(TokenType::LBrace, "{"),
+                build_token(TokenType::String, "abcde"),
+                build_token(TokenType::Colon, ":"),
+                build_token(TokenType::String, "fghij"),
+                build_token(TokenType::RBrace, "}"),
+                build_token(TokenType::LBracket, "["),
+                build_token(TokenType::Integer, "12345"),
+                build_token(TokenType::Comma, ","),
+                build_token(TokenType::Integer, "67890"),
+                build_token(TokenType::RBracket, "]"),
+                build_token(TokenType::Colon, ":"),
+                build_token(TokenType::Period, "."),
+                build_token(TokenType::Plus, "+"),
+                build_token(TokenType::Minus, "-"),
+                build_token(TokenType::EOF, ""),
             ],
         );
     }
