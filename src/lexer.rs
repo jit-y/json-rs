@@ -58,7 +58,7 @@ impl Lexer {
                 let literal = self.take_string_literal()?;
                 build_token(TokenType::String, literal)
             }
-            ch @ _ => return Err(anyhow!("error {}", ch)),
+            _ => return Err(anyhow!("error {}", ch)),
         };
 
         self.read_char();
@@ -99,8 +99,7 @@ impl Lexer {
         }
 
         (&self.input[current..self.current_position])
-            .to_owned()
-            .into_iter()
+            .iter()
             .collect()
     }
 
@@ -123,7 +122,7 @@ impl Lexer {
         }
 
         let literal = (&self.input[position..self.current_position])
-            .into_iter()
+            .iter()
             .collect();
 
         Ok(literal)
