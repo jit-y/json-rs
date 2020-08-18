@@ -66,6 +66,10 @@ impl Lexer {
         Ok(token)
     }
 
+    pub fn is_eof(&self) -> bool {
+        self.current_char.is_none()
+    }
+
     fn read_char(&mut self) {
         self.current_char = {
             if self.next_position >= self.input_len() {
