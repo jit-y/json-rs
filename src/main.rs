@@ -5,7 +5,7 @@ use std::process::exit;
 fn main() {
     match env::args().into_iter().nth(1) {
         Some(raw) => {
-            let mut lexer = lexer::Lexer::new(raw.to_string());
+            let mut lexer = lexer::Lexer::new(raw.as_bytes());
 
             while !lexer.is_eof() {
                 match lexer.next_token() {

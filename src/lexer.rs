@@ -4,16 +4,15 @@ use std::fmt::Debug;
 use anyhow::{anyhow, Result};
 
 #[derive(Debug, PartialEq)]
-pub struct Lexer {
-    input: Vec<char>,
+pub struct Lexer<'a> {
+    input: &'a [u8],
     current_position: usize,
     next_position: usize,
-    current_char: Option<char>,
+    current_char: Option<u8>,
 }
 
-impl Lexer {
-    pub fn new(input: String) -> Self {
-        let input = input.chars().collect();
+impl<'a> Lexer<'a> {
+    pub fn new(input: &'a [u8]) -> Self {
         let current_position = 0;
         let next_position = 0;
         let current_char = None;
@@ -45,16 +44,16 @@ impl Lexer {
         }
 
         let token = match ch {
-            ch @ '{' => build_token(TokenType::LBrace, ch),
-            ch @ '}' => build_token(TokenType::RBrace, ch),
-            ch @ '[' => build_token(TokenType::LBracket, ch),
-            ch @ ']' => build_token(TokenType::RBracket, ch),
-            ch @ ':' => build_token(TokenType::Colon, ch),
-            ch @ ',' => build_token(TokenType::Comma, ch),
-            ch @ '.' => build_token(TokenType::Period, ch),
-            ch @ '+' => build_token(TokenType::Plus, ch),
-            ch @ '-' => build_token(TokenType::Minus, ch),
-            '"' => {
+            ch @ b'{' => build_token(TokenType::LBrace, ch as char),
+            ch @ b'}' => build_token(TokenType::RBrace, ch as char),
+            ch @ b'[' => build_token(TokenType::LBracket, ch as char),
+            ch @ b']' => build_token(TokenType::RBracket, ch as char),
+            ch @ b':' => build_token(TokenType::Colon, ch as char),
+            ch @ b',' => build_token(TokenType::Comma, ch as char),
+            ch @ b'.' => build_token(TokenType::Period, ch as char),
+            ch @ b'+' => build_token(TokenType::Plus, ch as char),
+            ch @ b'-' => build_token(TokenType::Minus, ch as char),
+            b'"' => {
                 let literal = self.take_string_literal()?;
                 build_token(TokenType::String, literal)
             }
@@ -83,7 +82,7 @@ impl Lexer {
         self.next_position += 1;
     }
 
-    fn peek_char(&self) -> Option<char> {
+    fn peek_char(&self) -> Option<u8> {
         if self.next_position >= self.input_len() {
             None
         } else {
@@ -102,9 +101,9 @@ impl Lexer {
             }
         }
 
-        (&self.input[current..self.current_position])
-            .iter()
-            .collect()
+        unsafe {
+            String::from_utf8_unchecked((&self.input[current..self.current_position]).to_vec())
+        }
     }
 
     // TODO:escape
@@ -116,7 +115,7 @@ impl Lexer {
 
             match self.current_char {
                 Some(ch) => {
-                    if ch == '"' {
+                    if ch == b'"' {
                         break;
                     }
                 }
@@ -125,11 +124,8 @@ impl Lexer {
             }
         }
 
-        let literal = (&self.input[position..self.current_position])
-            .iter()
-            .collect();
-
-        Ok(literal)
+        String::from_utf8((&self.input[position..self.current_position]).to_vec())
+            .map_err(|e| anyhow!("{}", e))
     }
 
     fn input_len(&self) -> usize {
@@ -139,15 +135,15 @@ impl Lexer {
     fn skip_whitespace(&mut self) {
         while let Some(ch) = self.current_char {
             match ch {
-                ' ' | '\r' | '\n' | '\t' => self.read_char(),
+                b' ' | b'\r' | b'\n' | b'\t' => self.read_char(),
                 _ => break,
             }
         }
     }
 }
 
-fn is_digit(ch: char) -> bool {
-    ch.is_digit(10)
+fn is_digit(b: u8) -> bool {
+    b.is_ascii_digit()
 }
 
 #[cfg(test)]
@@ -158,7 +154,7 @@ mod tests {
     #[test]
     fn test_tokenize() {
         check_tokenize(
-            "{\"abcde\": \"fghij\"}[12345, 67890]:.+-".into(),
+            r#"{"abcde": "fghij"}[12345, 67890]:.+-"#.into(),
             vec![
                 build_token(TokenType::LBrace, "{"),
                 build_token(TokenType::String, "abcde"),
@@ -180,7 +176,7 @@ mod tests {
     }
 
     fn check_tokenize(input: String, expected: Vec<Token>) {
-        let mut lex = Lexer::new(input);
+        let mut lex = Lexer::new(input.as_bytes());
         let mut tokens = vec![];
         while let Some(_) = lex.current_char {
             let tok = lex.next_token();
