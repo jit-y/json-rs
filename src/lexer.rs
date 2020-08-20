@@ -1,4 +1,4 @@
-use crate::token::{build_token, Token, TokenType};
+use crate::token::{build_token, lookup_keyword, Token, TokenType};
 use std::fmt::Debug;
 
 use anyhow::{anyhow, Result};
@@ -41,6 +41,15 @@ impl<'a> Lexer<'a> {
             let literal = self.read_integer_literal();
 
             return Ok(build_token(TokenType::Integer, literal));
+        }
+
+        if is_lowercase(ch) {
+            let literal = self.read_keyword_literal();
+
+            let token_type =
+                lookup_keyword(literal.as_str()).ok_or(anyhow!("unknown keyword {}", literal))?;
+
+            return Ok(build_token(token_type, literal));
         }
 
         let token = match ch {
@@ -106,6 +115,22 @@ impl<'a> Lexer<'a> {
         }
     }
 
+    fn read_keyword_literal(&mut self) -> String {
+        let current = self.current_position;
+
+        while let Some(ch) = self.current_char {
+            if is_lowercase(ch) {
+                self.read_char();
+            } else {
+                break;
+            }
+        }
+
+        unsafe {
+            String::from_utf8_unchecked((&self.input[current..self.current_position]).to_vec())
+        }
+    }
+
     // TODO:escape
     fn take_string_literal(&mut self) -> Result<String> {
         let position = self.current_position + 1;
@@ -146,6 +171,10 @@ fn is_digit(b: u8) -> bool {
     b.is_ascii_digit()
 }
 
+fn is_lowercase(b: u8) -> bool {
+    b.is_ascii_lowercase()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -154,7 +183,7 @@ mod tests {
     #[test]
     fn test_tokenize() {
         check_tokenize(
-            r#"{"abcde": "fghij"}[12345, 67890]:.+-"#.into(),
+            r#"{"abcde": "fghij"}[12345, 67890, null, true, false]:.+-"#.into(),
             vec![
                 build_token(TokenType::LBrace, "{"),
                 build_token(TokenType::String, "abcde"),
@@ -165,6 +194,12 @@ mod tests {
                 build_token(TokenType::Integer, "12345"),
                 build_token(TokenType::Comma, ","),
                 build_token(TokenType::Integer, "67890"),
+                build_token(TokenType::Comma, ","),
+                build_token(TokenType::Null, "null"),
+                build_token(TokenType::Comma, ","),
+                build_token(TokenType::True, "true"),
+                build_token(TokenType::Comma, ","),
+                build_token(TokenType::False, "false"),
                 build_token(TokenType::RBracket, "]"),
                 build_token(TokenType::Colon, ":"),
                 build_token(TokenType::Period, "."),

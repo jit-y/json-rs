@@ -31,6 +31,10 @@ pub enum TokenType {
     Integer,
     String,
 
+    Null,
+    True,
+    False,
+
     EOF,
 }
 
@@ -39,4 +43,13 @@ where
     T: ToString,
 {
     Token::new(token_type, literal.to_string())
+}
+
+pub fn lookup_keyword(literal: &str) -> Option<TokenType> {
+    match literal {
+        "null" => Some(TokenType::Null),
+        "true" => Some(TokenType::True),
+        "false" => Some(TokenType::False),
+        _ => None,
+    }
 }
