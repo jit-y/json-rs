@@ -4,15 +4,16 @@ use std::fmt::Debug;
 use anyhow::{anyhow, Result};
 
 #[derive(Debug, PartialEq)]
-pub struct Lexer<'a> {
-    input: &'a [u8],
+pub struct Lexer {
+    input: Vec<u8>,
     current_position: usize,
     next_position: usize,
     current_char: Option<u8>,
 }
 
-impl<'a> Lexer<'a> {
-    pub fn new(input: &'a [u8]) -> Self {
+impl Lexer {
+    pub fn new(input: Vec<u8>) -> Self {
+        let input = input.to_owned();
         let current_position = 0;
         let next_position = 0;
         let current_char = None;
@@ -211,7 +212,7 @@ mod tests {
     }
 
     fn check_tokenize(input: String, expected: Vec<Token>) {
-        let mut lex = Lexer::new(input.as_bytes());
+        let mut lex = Lexer::new(input.as_bytes().to_owned());
         let mut tokens = vec![];
         while let Some(_) = lex.current_char {
             let tok = lex.next_token();
