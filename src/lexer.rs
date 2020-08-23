@@ -33,10 +33,11 @@ impl Lexer {
     pub fn next_token(&mut self) -> Result<Token> {
         self.skip_whitespace();
 
-        let ch = match self.current_char {
-            None => return Ok(build_token(TokenType::EOF, "")),
-            Some(c) => c,
-        };
+        if self.is_eof() {
+            return Ok(build_token(TokenType::EOF, ""));
+        }
+
+        let ch = self.current_char.ok_or(anyhow!("error"))?;
 
         if is_digit(ch) {
             let literal = self.read_integer_literal();
