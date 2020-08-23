@@ -1,6 +1,8 @@
 use crate::lexer::Lexer;
 use crate::token::Token;
 
+use anyhow::Result;
+
 #[derive(Debug)]
 pub struct Parser {
     lexer: Lexer,
@@ -14,20 +16,28 @@ impl Parser {
         let lexer = lexer;
         let current_token = None;
         let peek_token = None;
-        let mut parser = Parser {
+        let parser = Parser {
             lexer,
             current_token,
             peek_token,
         };
 
-        parser.next_token();
-        parser.next_token();
-
         parser
     }
 
-    fn next_token(&mut self) {
+    pub fn build(lexer: Lexer) -> Result<Self> {
+        let mut parser = Self::new(lexer);
+
+        parser.next_token()?;
+        parser.next_token()?;
+
+        Ok(parser)
+    }
+
+    fn next_token(&mut self) -> Result<()> {
         self.current_token = self.peek_token.take();
-        self.peek_token = self.lexer.next_token().ok();
+        self.peek_token = self.lexer.next_token().map(|t| Some(t))?;
+
+        Ok(())
     }
 }
