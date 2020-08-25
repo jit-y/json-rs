@@ -2,7 +2,7 @@ use std::fmt::Debug;
 
 #[derive(Debug, PartialEq)]
 pub struct Token {
-    token_type: TokenType,
+    pub token_type: TokenType,
     literal: String,
 }
 
